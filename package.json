@@ -1,0 +1,32 @@
+{
+  "name": "linear-pm",
+  "version": "1.0.0",
+  "description": "AI-powered product management assistant for Linear via MCP",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "express": "^4.19.0",
+    "dotenv": "^16.4.0",
+    "axios": "^1.7.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "linear",
+    "product-management",
+    "ai",
+    "mcp",
+    "anthropic"
+  ],
+  "author": "LinearPM Team",
+  "license": "MIT"
+}
