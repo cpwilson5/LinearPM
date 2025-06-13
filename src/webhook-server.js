@@ -69,16 +69,12 @@ export class WebhookServer {
   }
 
   async handleLinearWebhook(payload) {
-    console.log('📨 Received webhook:', payload.type);
-    
     // Handle comment creation events
     if (payload.type === 'Comment' && payload.action === 'create') {
       const comment = payload.data;
       
       // Check if comment mentions @goPM
       if (comment.body && comment.body.includes('@goPM')) {
-        console.log('💬 Processing @goPM mention in comment');
-        console.log(`   Issue ID: ${comment.issue.id}`);
         await this.processLinearComment(comment);
       }
     }
@@ -88,8 +84,8 @@ export class WebhookServer {
       const issue = payload.data;
       
       if (issue.description && issue.description.includes('@goPM')) {
-        console.log('📋 Processing @goPM mention in issue');
-        console.log(`   Issue ID: ${issue.id}`);
+        console.log(`Received Issue ${issue.id}`);
+        console.log(issue.description);
         await this.processLinearIssue(issue);
       }
     }
@@ -102,6 +98,25 @@ export class WebhookServer {
       // Get full issue context with project information
       const issue = await this.linearClient.getIssueWithProject(comment.issue.id);
       const projectContext = await this.linearClient.getProjectContext(issue);
+      
+      // Log structured format
+      const commentSnippet = comment.body.substring(0, 150) + (comment.body.length > 150 ? '...' : '');
+      const issueSnippet = (issue.description || '').substring(0, 150) + ((issue.description || '').length > 150 ? '...' : '');
+      
+      console.log('');
+      console.log(`💬 Received Comment ${commentSnippet}`);
+      console.log('');
+      console.log(`📋 For Issue ${comment.issue.id} ${issue.title} ${issueSnippet}`);
+      console.log('');
+      
+      if (typeof projectContext === 'string') {
+        console.log(`🏗️ ${projectContext}`);
+      } else {
+        const projectContent = projectContext.content || projectContext.description || '';
+        const projectSnippet = projectContent.substring(0, 150) + (projectContent.length > 150 ? '...' : '');
+        console.log(`🏗️ Related to Project ${projectContext.name} ${projectSnippet}`);
+      }
+      console.log('');
       
       await this.processCommand(comment.issue.id, command, {
         issueTitle: issue.title,

@@ -111,12 +111,21 @@ export class LinearClient {
 
   async getIssueWithProject(issueId) {
     try {
-      const issue = await this.client.issue(issueId, {
-        project: true
-      });
+      const issue = await this.client.issue(issueId);
       
       if (!issue) {
         throw new Error(`Issue with ID ${issueId} not found`);
+      }
+
+      // Await the project promise if it exists and store it
+      if (issue.project) {
+        const resolvedProject = await issue.project;
+        
+        // Create a new object with the resolved project
+        return {
+          ...issue,
+          project: resolvedProject
+        };
       }
 
       return issue;
@@ -129,20 +138,25 @@ export class LinearClient {
   async getProjectContext(issue) {
     try {
       if (!issue.project) {
-        console.log('📋 Project Context: No project associated with issue');
+        console.log('No project associated with issue');
         return "No project associated with issue";
       }
 
       const project = issue.project;
+      
       const projectContext = {
         name: project.name || 'No name',
         description: project.description || 'No description',
+        content: project.content || 'No content',
         summary: project.description ? project.description.substring(0, 200) + (project.description.length > 200 ? '...' : '') : 'No summary'
       };
       
-      console.log('📋 Project Context Retrieved:');
-      console.log(`  Name: ${projectContext.name}`);
-      console.log(`  Description: ${projectContext.description}`);
+      // Use content if description is empty/generic, otherwise use description
+      const mainText = (projectContext.description === 'No description' && projectContext.content !== 'No content') 
+        ? projectContext.content 
+        : projectContext.description;
+      
+      // Remove the separate project logging since it's now handled in webhook-server
       
       return projectContext;
     } catch (error) {

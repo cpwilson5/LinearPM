@@ -58,6 +58,7 @@ ${typeof context.projectContext === 'string'
   ? context.projectContext 
   : `- Name: ${context.projectContext?.name || 'N/A'}
 - Description: ${context.projectContext?.description || 'N/A'}
+- Content: ${context.projectContext?.content || 'N/A'}
 - Summary: ${context.projectContext?.summary || 'N/A'}`}
 
 **Issue Context:**
