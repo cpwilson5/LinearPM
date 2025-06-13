@@ -23,7 +23,7 @@ const server = createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'healthy', 
-      service: 'LinearPM Test Server',
+      service: 'goPM Test Server',
       message: 'Ready for API keys and dependencies!'
     }));
     return;
@@ -43,7 +43,7 @@ const server = createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: true, 
-          message: 'Webhook received! (LinearPM ready for configuration)'
+          message: 'Webhook received! (goPM ready for configuration)'
         }));
       } catch (error) {
         console.error('❌ Webhook error:', error.message);
@@ -60,7 +60,7 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log('🚀 LinearPM Test Server Started!');
+  console.log('🚀 goPM Test Server Started!');
   console.log(`📡 Server running on http://localhost:${port}`);
   console.log('🔍 Test endpoints:');
   console.log(`   GET  http://localhost:${port}/health`);
@@ -70,10 +70,10 @@ server.listen(port, () => {
   console.log('   1. Add your API keys to .env file');
   console.log('   2. Run: npm install (when registry is working)');
   console.log('   3. Set up Linear webhook');
-  console.log('   4. Start using @LinearPM in Linear!');
+  console.log('   4. Start using @goPM in Linear!');
 });
 
 process.on('SIGINT', () => {
-  console.log('\n👋 LinearPM Test Server stopped');
+  console.log('\n👋 goPM Test Server stopped');
   process.exit(0);
 });

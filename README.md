@@ -1,15 +1,15 @@
-# LinearPM 🤖
+# goPM 🤖
 
 **AI-Powered Product Management Assistant for Linear**
 
-LinearPM transforms your Linear workflow with intelligent, conversational AI assistance. Simply mention `@LinearPM` in any Linear issue or comment, and get expert product management guidance powered by Anthropic's Claude.
+goPM transforms your Linear workflow with intelligent, conversational AI assistance. Simply mention `@goPM` in any Linear issue or comment, and get expert product management guidance powered by Anthropic's Claude.
 
 ---
 
-## ✨ What Makes LinearPM Special
+## ✨ What Makes goPM Special
 
 ### 🧠 Conversational Intelligence
-- **Natural Language Processing**: Talk to LinearPM like you would a senior PM
+- **Natural Language Processing**: Talk to goPM like you would a senior PM
 - **Context-Aware Responses**: Understands your issue context and provides relevant advice
 - **Smart Command Routing**: AI automatically determines the best type of assistance to provide
 
@@ -34,7 +34,7 @@ LinearPM transforms your Linear workflow with intelligent, conversational AI ass
 1. **Clone and Install**
    ```bash
    git clone <your-repo>
-   cd LinearPM
+   cd goPM
    npm install
    ```
 
@@ -75,46 +75,46 @@ LinearPM transforms your Linear workflow with intelligent, conversational AI ass
 
 ---
 
-## 💬 How to Use LinearPM
+## 💬 How to Use goPM
 
 ### Conversational Commands
-Just mention `@LinearPM` with your request in natural language:
+Just mention `@goPM` with your request in natural language:
 
 ```
-@LinearPM what are the risks with this feature?
-@LinearPM how long will this take to build?
-@LinearPM break this epic down into user stories
-@LinearPM help me improve these acceptance criteria
+@goPM what are the risks with this feature?
+@goPM how long will this take to build?
+@goPM break this epic down into user stories
+@goPM help me improve these acceptance criteria
 ```
 
 ### Specific Command Categories
 
 #### 🔍 **Quality Improvement**
-- `@LinearPM improve test cases` - Enhance existing test coverage
-- `@LinearPM improve acceptance criteria` - Refine criteria with GIVEN-WHEN-THEN format
+- `@goPM improve test cases` - Enhance existing test coverage
+- `@goPM improve acceptance criteria` - Refine criteria with GIVEN-WHEN-THEN format
 
 #### 📋 **Planning & Requirements**
-- `@LinearPM suggest requirements` - Generate comprehensive requirements
-- `@LinearPM break down this epic` - Decompose large features into stories
-- `@LinearPM create user stories` - Generate detailed user stories
-- `@LinearPM suggest MVP scope` - Define minimum viable product features
+- `@goPM suggest requirements` - Generate comprehensive requirements
+- `@goPM break down this epic` - Decompose large features into stories
+- `@goPM create user stories` - Generate detailed user stories
+- `@goPM suggest MVP scope` - Define minimum viable product features
 
 #### ⚠️ **Risk & Analysis**
-- `@LinearPM identify risks` - Analyze potential risks and blockers
-- `@LinearPM analyze dependencies` - Map feature and team dependencies
-- `@LinearPM estimate effort` - Get effort estimation guidance
+- `@goPM identify risks` - Analyze potential risks and blockers
+- `@goPM analyze dependencies` - Map feature and team dependencies
+- `@goPM estimate effort` - Get effort estimation guidance
 
 #### 🤖 **Conversational**
-- `@LinearPM [your question]` - Ask any PM question in natural language
+- `@goPM [your question]` - Ask any PM question in natural language
 
 ---
 
 ## 🎯 Example Interactions
 
 ### Epic Breakdown
-**You:** `@LinearPM break down this user authentication epic`
+**You:** `@goPM break down this user authentication epic`
 
-**LinearPM:** 🧩 Working on it...
+**goPM:** 🧩 Working on it...
 
 ```markdown
 ## 🧩 Epic Breakdown: User Authentication
@@ -139,9 +139,9 @@ Just mention `@LinearPM` with your request in natural language:
 ```
 
 ### Risk Analysis
-**You:** `@LinearPM what could go wrong with this payment integration?`
+**You:** `@goPM what could go wrong with this payment integration?`
 
-**LinearPM:** ⚠️ Working on it...
+**goPM:** ⚠️ Working on it...
 
 ```markdown
 ## ⚠️ Risk Analysis: Payment Integration
@@ -164,7 +164,7 @@ Just mention `@LinearPM` with your request in natural language:
 ```
 Linear Issue/Comment
        ↓
-   LinearPM Mention
+   goPM Mention
        ↓
   Webhook Handler
        ↓
@@ -206,7 +206,7 @@ MCP_SERVER_VERSION=1.0.0
 ```
 
 ### Custom Prompts
-LinearPM uses specialized prompts for each command type. You can customize these in `src/ai-assistant.js` to match your team's preferences and standards.
+goPM uses specialized prompts for each command type. You can customize these in `src/ai-assistant.js` to match your team's preferences and standards.
 
 ---
 
@@ -224,7 +224,7 @@ curl -X POST http://localhost:3000/webhook \
     "type": "Comment", 
     "action": "create",
     "data": {
-      "body": "@LinearPM help me improve test cases",
+      "body": "@goPM help me improve test cases",
       "issue": {"id": "test-123"}
     }
   }'
@@ -259,7 +259,7 @@ ngrok http 3000
    this.quickPatterns = [
      // ... existing patterns
      {
-       regex: /@LinearPM\s+your\s+pattern/i,
+       regex: /@goPM\s+your\s+pattern/i,
        type: 'your_new_command'
      }
    ];
@@ -307,7 +307,7 @@ ngrok http 3000
 
 ### Common Issues
 
-**LinearPM not responding to mentions:**
+**goPM not responding to mentions:**
 - Check webhook URL is accessible from internet
 - Verify Linear webhook secret matches `.env`
 - Check server logs for errors

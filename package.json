@@ -1,5 +1,5 @@
 {
-  "name": "linear-pm",
+  "name": "go-pm",
   "version": "1.0.0",
   "description": "AI-powered product management assistant for Linear via MCP",
   "main": "src/index.js",
@@ -27,6 +27,6 @@
     "mcp",
     "anthropic"
   ],
-  "author": "LinearPM Team",
+  "author": "goPM Team",
   "license": "MIT"
 }

@@ -24,46 +24,46 @@ export class CommandParser {
     // Keep basic patterns for backwards compatibility
     this.quickPatterns = [
       {
-        regex: /@LinearPM\s+(?:help\s+me\s+)?improve\s+(?:the\s+)?test\s+cases/i,
+        regex: /@goPM\s+(?:help\s+me\s+)?improve\s+(?:the\s+)?test\s+cases/i,
         type: 'improve_test_cases'
       },
       {
-        regex: /@LinearPM\s+(?:help\s+me\s+)?improve\s+(?:the\s+)?acceptance\s+criteria/i,
+        regex: /@goPM\s+(?:help\s+me\s+)?improve\s+(?:the\s+)?acceptance\s+criteria/i,
         type: 'improve_acceptance_criteria'
       },
       {
-        regex: /@LinearPM\s+(?:help\s+with\s+|suggest\s+)?requirements/i,
+        regex: /@goPM\s+(?:help\s+with\s+|suggest\s+)?requirements/i,
         type: 'suggest_requirements'
       },
       {
-        regex: /@LinearPM\s+(?:break\s+down|decompose)\s+(?:this\s+)?epic/i,
+        regex: /@goPM\s+(?:break\s+down|decompose)\s+(?:this\s+)?epic/i,
         type: 'break_down_epic'
       },
       {
-        regex: /@LinearPM\s+(?:estimate|how\s+long|effort)/i,
+        regex: /@goPM\s+(?:estimate|how\s+long|effort)/i,
         type: 'estimate_effort'
       },
       {
-        regex: /@LinearPM\s+(?:identify\s+|what\s+are\s+the\s+|find\s+)?risks/i,
+        regex: /@goPM\s+(?:identify\s+|what\s+are\s+the\s+|find\s+)?risks/i,
         type: 'identify_risks'
       },
       {
-        regex: /@LinearPM\s+(?:create\s+|write\s+|suggest\s+)?user\s+stories/i,
+        regex: /@goPM\s+(?:create\s+|write\s+|suggest\s+)?user\s+stories/i,
         type: 'create_user_stories'
       },
       {
-        regex: /@LinearPM\s+(?:analyze\s+|identify\s+|find\s+)?dependencies/i,
+        regex: /@goPM\s+(?:analyze\s+|identify\s+|find\s+)?dependencies/i,
         type: 'analyze_dependencies'
       },
       {
-        regex: /@LinearPM\s+(?:suggest\s+|define\s+|what\s+should\s+be\s+)?mvp/i,
+        regex: /@goPM\s+(?:suggest\s+|define\s+|what\s+should\s+be\s+)?mvp/i,
         type: 'suggest_mvp_scope'
       }
     ];
   }
 
   async parseCommand(text, aiAssistant = null) {
-    if (!text || !text.includes('@LinearPM')) {
+    if (!text || !text.includes('@goPM')) {
       return null;
     }
 
@@ -99,7 +99,7 @@ export class CommandParser {
     }
 
     // Fallback to conversational request
-    if (text.includes('@LinearPM')) {
+    if (text.includes('@goPM')) {
       return {
         type: 'conversational_request',
         originalText: text.trim(),
@@ -118,9 +118,9 @@ export class CommandParser {
     const lines = text.split('\n');
     let contentStartIndex = -1;
     
-    // Find the line with @LinearPM command
+    // Find the line with @goPM command
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes('@LinearPM')) {
+      if (lines[i].includes('@goPM')) {
         contentStartIndex = i + 1;
         break;
       }
@@ -188,9 +188,9 @@ export class CommandParser {
     return lines.slice(sectionStart, sectionEnd).join('\n').trim();
   }
 
-  // Utility method to detect if text contains a LinearPM mention
+  // Utility method to detect if text contains a goPM mention
   static containsMention(text) {
-    return text && text.includes('@LinearPM');
+    return text && text.includes('@goPM');
   }
 
   // Get all available command types
@@ -200,11 +200,11 @@ export class CommandParser {
         category: 'Quality Improvement',
         commands: [
           {
-            command: '@LinearPM improve test cases',
+            command: '@goPM improve test cases',
             description: 'Analyze and suggest improvements for existing test cases'
           },
           {
-            command: '@LinearPM improve acceptance criteria',
+            command: '@goPM improve acceptance criteria',
             description: 'Analyze and suggest improvements for acceptance criteria'
           }
         ]
@@ -213,19 +213,19 @@ export class CommandParser {
         category: 'Planning & Requirements',
         commands: [
           {
-            command: '@LinearPM suggest requirements',
+            command: '@goPM suggest requirements',
             description: 'Generate comprehensive requirements based on issue context'
           },
           {
-            command: '@LinearPM break down this epic',
+            command: '@goPM break down this epic',
             description: 'Decompose large features into manageable user stories'
           },
           {
-            command: '@LinearPM create user stories',
+            command: '@goPM create user stories',
             description: 'Generate user stories based on feature description'
           },
           {
-            command: '@LinearPM suggest MVP scope',
+            command: '@goPM suggest MVP scope',
             description: 'Define minimum viable product features'
           }
         ]
@@ -234,15 +234,15 @@ export class CommandParser {
         category: 'Risk & Analysis',
         commands: [
           {
-            command: '@LinearPM identify risks',
+            command: '@goPM identify risks',
             description: 'Analyze potential risks and blockers for this feature'
           },
           {
-            command: '@LinearPM analyze dependencies',
+            command: '@goPM analyze dependencies',
             description: 'Identify dependencies between features and teams'
           },
           {
-            command: '@LinearPM estimate effort',
+            command: '@goPM estimate effort',
             description: 'Provide effort estimation guidance and considerations'
           }
         ]
@@ -251,7 +251,7 @@ export class CommandParser {
         category: 'Conversational',
         commands: [
           {
-            command: '@LinearPM [your question here]',
+            command: '@goPM [your question here]',
             description: 'Ask any product management question in natural language'
           }
         ]

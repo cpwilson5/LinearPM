@@ -41,7 +41,7 @@ export class WebhookServer {
   setupRoutes() {
     // Health check
     this.app.get('/health', (req, res) => {
-      res.json({ status: 'healthy', service: 'LinearPM' });
+      res.json({ status: 'healthy', service: 'goPM' });
     });
 
     // Linear webhook endpoint
@@ -69,24 +69,27 @@ export class WebhookServer {
   }
 
   async handleLinearWebhook(payload) {
-    console.log('Received webhook:', payload.type);
-    console.log('Payload:', payload);
+    console.log('📨 Received webhook:', payload.type);
     
     // Handle comment creation events
     if (payload.type === 'Comment' && payload.action === 'create') {
       const comment = payload.data;
       
-      // Check if comment mentions @LinearPM
-      if (comment.body && comment.body.includes('@LinearPM')) {
+      // Check if comment mentions @goPM
+      if (comment.body && comment.body.includes('@goPM')) {
+        console.log('💬 Processing @goPM mention in comment');
+        console.log(`   Issue ID: ${comment.issue.id}`);
         await this.processLinearComment(comment);
       }
     }
     
-    // Handle issue updates that might contain @LinearPM mentions
+    // Handle issue updates that might contain @goPM mentions
     if (payload.type === 'Issue' && (payload.action === 'create' || payload.action === 'update')) {
       const issue = payload.data;
       
-      if (issue.description && issue.description.includes('@LinearPM')) {
+      if (issue.description && issue.description.includes('@goPM')) {
+        console.log('📋 Processing @goPM mention in issue');
+        console.log(`   Issue ID: ${issue.id}`);
         await this.processLinearIssue(issue);
       }
     }
@@ -96,15 +99,17 @@ export class WebhookServer {
     const command = await this.commandParser.parseCommand(comment.body, this.aiAssistant);
     
     if (command) {
-      // Get full issue context
-      const issue = await this.linearClient.getIssue(comment.issue.id);
+      // Get full issue context with project information
+      const issue = await this.linearClient.getIssueWithProject(comment.issue.id);
+      const projectContext = await this.linearClient.getProjectContext(issue);
       
       await this.processCommand(comment.issue.id, command, {
         issueTitle: issue.title,
         issueDescription: issue.description,
         comments: issue.comments?.nodes || [],
         team: issue.team?.name,
-        state: issue.state?.name
+        state: issue.state?.name,
+        projectContext: projectContext
       });
     }
   }
@@ -113,86 +118,70 @@ export class WebhookServer {
     const command = await this.commandParser.parseCommand(issue.description, this.aiAssistant);
     
     if (command) {
+      // Get full issue context with project information
+      const fullIssue = await this.linearClient.getIssueWithProject(issue.id);
+      const projectContext = await this.linearClient.getProjectContext(fullIssue);
+      
       await this.processCommand(issue.id, command, {
         issueTitle: issue.title,
         issueDescription: issue.description,
         team: issue.team?.name,
-        state: issue.state?.name
+        state: issue.state?.name,
+        projectContext: projectContext
       });
     }
   }
 
   async processCommand(issueId, command, context) {
     try {
-      // First, acknowledge with emoji
-      const workingEmoji = this.getWorkingEmoji(command.type);
-      await this.linearClient.addComment(issueId, `${workingEmoji} Working on it...`);
+      // Create initial working comment
+      await this.linearClient.addWorkingComment(issueId);
       
       let response;
       
-      switch (command.type) {
-        case 'improve_test_cases':
-          response = await this.aiAssistant.improveTestCases(
-            command.currentContent || '',
-            context
-          );
-          break;
-          
-        case 'improve_acceptance_criteria':
-          response = await this.aiAssistant.improveAcceptanceCriteria(
-            command.currentContent || '',
-            context
-          );
-          break;
-          
-        case 'suggest_requirements':
-          response = await this.aiAssistant.suggestRequirements(context);
-          break;
-          
-        case 'break_down_epic':
-          response = await this.aiAssistant.breakDownEpic(context);
-          break;
-          
-        case 'estimate_effort':
-          response = await this.aiAssistant.estimateEffort(context);
-          break;
-          
-        case 'identify_risks':
-          response = await this.aiAssistant.identifyRisks(context);
-          break;
-          
-        case 'create_user_stories':
-          response = await this.aiAssistant.createUserStories(context);
-          break;
-          
-        case 'analyze_dependencies':
-          response = await this.aiAssistant.analyzeDependencies(context);
-          break;
-          
-        case 'suggest_mvp_scope':
-          response = await this.aiAssistant.suggestMvpScope(context);
-          break;
-          
-        case 'conversational_request':
-        default:
-          response = await this.aiAssistant.handleConversationalRequest(
-            command.originalText,
-            context
-          );
-      }
+      // All requests now use the master prompt
+      response = await this.aiAssistant.handleConversationalRequest(
+        command.originalText,
+        context
+      );
       
-      // Add the AI response as a comment
-      await this.linearClient.addComment(issueId, response);
+      // Update the working comment with the full response
+      await this.linearClient.updateWorkingCommentWithResult(issueId, response);
       
     } catch (error) {
       console.error('Command processing error:', error);
       
-      // Add error message as comment
-      await this.linearClient.addComment(
-        issueId,
-        '❌ Sorry, I encountered an error processing your request. Please try again.'
-      );
+      try {
+        // Try to update the working comment with error
+        await this.linearClient.updateWorkingCommentWithResult(issueId, '❌ Sorry, I encountered an error processing your request. Please try again.');
+      } catch (updateError) {
+        console.error('Failed to update working comment with error:', updateError);
+        // Fallback: Add error message as new comment
+        try {
+          await this.linearClient.addComment(
+            issueId,
+            '❌ Sorry, I encountered an error processing your request. Please try again.'
+          );
+        } catch (fallbackError) {
+          console.error('Failed to add fallback error comment:', fallbackError);
+        }
+      }
     }
+  }
+
+  createSummaryResponse(response, commandType) {
+    const maxLength = 100;
+    let summary = response.substring(0, maxLength);
+    
+    if (response.length > maxLength) {
+      summary += '...';
+    }
+    
+    // Remove line breaks for cleaner display
+    summary = summary.replace(/\n/g, ' ').trim();
+    
+    const action = 'Completed request';
+    return `${action}: ${summary}`;
   }
 
   getWorkingEmoji(commandType) {

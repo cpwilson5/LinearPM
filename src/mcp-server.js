@@ -5,7 +5,7 @@ import { LinearClient } from './linear-client.js';
 import { CommandParser } from './command-parser.js';
 import { AIAssistant } from './ai-assistant.js';
 
-export class LinearPMServer {
+export class GoPMServer {
   constructor() {
     console.log('📝 MCP Server functionality temporarily disabled');
     console.log('   Using webhook-only mode for now');
