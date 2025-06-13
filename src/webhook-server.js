@@ -70,6 +70,7 @@ export class WebhookServer {
 
   async handleLinearWebhook(payload) {
     console.log('Received webhook:', payload.type);
+    console.log('Payload:', payload);
     
     // Handle comment creation events
     if (payload.type === 'Comment' && payload.action === 'create') {
@@ -101,7 +102,7 @@ export class WebhookServer {
       await this.processCommand(comment.issue.id, command, {
         issueTitle: issue.title,
         issueDescription: issue.description,
-        comments: issue.comments.nodes,
+        comments: issue.comments?.nodes || [],
         team: issue.team?.name,
         state: issue.state?.name
       });

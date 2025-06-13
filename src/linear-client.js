@@ -1,50 +1,23 @@
-import axios from 'axios';
+import { LinearClient as LinearSDK } from '@linear/sdk';
 
 export class LinearClient {
   constructor() {
     this.apiKey = process.env.LINEAR_API_KEY;
-    this.baseURL = 'https://api.linear.app/graphql';
-    
-    this.client = axios.create({
-      baseURL: this.baseURL,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    this.client = new LinearSDK({ apiKey: this.apiKey });
   }
 
   async addComment(issueId, content) {
-    const mutation = `
-      mutation CreateComment($issueId: String!, $body: String!) {
-        commentCreate(input: {
-          issueId: $issueId
-          body: $body
-        }) {
-          success
-          comment {
-            id
-            body
-            createdAt
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await this.client.post('', {
-        query: mutation,
-        variables: {
-          issueId,
-          body: content,
-        },
+      const result = await this.client.createComment({
+        issueId,
+        body: content,
       });
 
-      if (response.data.errors) {
-        throw new Error(`Linear API error: ${response.data.errors[0].message}`);
+      if (result.success && result.comment) {
+        return result.comment;
+      } else {
+        throw new Error('Failed to create comment: ' + (result.error || 'Unknown error'));
       }
-
-      return response.data.data.commentCreate.comment;
     } catch (error) {
       console.error('Failed to add comment to Linear:', error);
       throw error;
@@ -52,49 +25,14 @@ export class LinearClient {
   }
 
   async getIssue(issueId) {
-    const query = `
-      query GetIssue($id: String!) {
-        issue(id: $id) {
-          id
-          title
-          description
-          state {
-            name
-            type
-          }
-          team {
-            name
-            key
-          }
-          assignee {
-            name
-            email
-          }
-          comments {
-            nodes {
-              id
-              body
-              createdAt
-              user {
-                name
-              }
-            }
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await this.client.post('', {
-        query,
-        variables: { id: issueId },
-      });
-
-      if (response.data.errors) {
-        throw new Error(`Linear API error: ${response.data.errors[0].message}`);
+      const issue = await this.client.issue(issueId);
+      
+      if (!issue) {
+        throw new Error(`Issue with ID ${issueId} not found`);
       }
 
-      return response.data.data.issue;
+      return issue;
     } catch (error) {
       console.error('Failed to fetch issue from Linear:', error);
       throw error;
@@ -102,69 +40,28 @@ export class LinearClient {
   }
 
   async updateIssue(issueId, updates) {
-    const mutation = `
-      mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
-        issueUpdate(id: $id, input: $input) {
-          success
-          issue {
-            id
-            title
-            description
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await this.client.post('', {
-        query: mutation,
-        variables: {
-          id: issueId,
-          input: updates,
-        },
-      });
+      const result = await this.client.issueUpdate(issueId, updates);
 
-      if (response.data.errors) {
-        throw new Error(`Linear API error: ${response.data.errors[0].message}`);
+      if (result.success && result.issue) {
+        return result.issue;
+      } else {
+        throw new Error('Failed to update issue: ' + (result.error || 'Unknown error'));
       }
-
-      return response.data.data.issueUpdate.issue;
     } catch (error) {
-      console.error('Failed to update issue in Linear:', error);
       throw error;
     }
   }
 
   async searchIssues(query) {
-    const searchQuery = `
-      query SearchIssues($query: String!) {
-        issues(filter: { title: { contains: $query } }) {
-          nodes {
-            id
-            title
-            description
-            state {
-              name
-            }
-            team {
-              name
-            }
-          }
-        }
-      }
-    `;
-
     try {
-      const response = await this.client.post('', {
-        query: searchQuery,
-        variables: { query },
+      const issues = await this.client.issues({
+        filter: { 
+          title: { contains: query } 
+        }
       });
 
-      if (response.data.errors) {
-        throw new Error(`Linear API error: ${response.data.errors[0].message}`);
-      }
-
-      return response.data.data.issues.nodes;
+      return issues.nodes;
     } catch (error) {
       console.error('Failed to search issues in Linear:', error);
       throw error;
