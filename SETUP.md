@@ -1,128 +1,275 @@
-# LinearPM Setup Guide
+# goPM Setup Guide
 
-## Current Status ✅
+**Complete Linear Agent Installation**
 
-LinearPM foundation is built and ready! We're running in test mode while npm registry issues resolve.
+goPM supports two installation modes: **Agent Mode** (recommended) with OAuth, and **Legacy Mode** with API keys.
 
-## Quick Start
+---
 
-### 1. Get Your API Keys
+## 🤖 Agent Mode Setup (Recommended)
 
-**Linear API Key:**
+### 1. Prerequisites
+- Node.js 18+
+- Linear workspace admin access
+- Anthropic API key
+
+### 2. Clone and Install
 ```bash
-# Go to: Linear → Settings → API → Personal API Keys
-# Create new key, then add to .env:
-LINEAR_API_KEY=lin_api_xxxxxxxxxxxxxxxx
-```
-
-**Anthropic API Key:**
-```bash
-# Go to: https://console.anthropic.com
-# Get your API key, then add to .env:
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
-```
-
-### 2. Test the Server
-
-```bash
-# Start test server
-node test-server.js
-
-# Test health endpoint (in another terminal)
-curl http://localhost:3000/health
-```
-
-### 3. Install Dependencies (when npm registry is working)
-
-```bash
+git clone <your-repo>
+cd goPM
 npm install
 ```
 
-### 4. Set Up Linear Webhook
+### 3. Create Linear OAuth Application
+1. **Go to Linear Developer Console**
+   - Visit: https://linear.app/settings/api/applications
+   - Click "Create Application"
 
-1. Go to Linear → Settings → API → Webhooks
-2. Create new webhook:
-   - **URL**: `https://your-domain.com/webhook` (or ngrok for testing)
-   - **Events**: Comment events, Issue events
-3. Copy the webhook secret to `.env`:
-   ```bash
-   LINEAR_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+2. **Configure Application**
+   ```
+   Name: goPM AI Assistant
+   Description: AI-powered product management assistant
+   Website: https://github.com/your-username/goPM
+   Redirect URI: http://localhost:3000/oauth/callback
    ```
 
-### 5. Start Full Server
+3. **Set Required Scopes**
+   - ✅ `read` - Read workspace data
+   - ✅ `write` - Write access for comments/updates
+   - ✅ `issues:create` - Create new issues
+   - ✅ `app:assignable` - Allow assignment to issues
+   - ✅ `app:mentionable` - Allow @mentions
 
+4. **Get OAuth Credentials**
+   - Copy Client ID and Client Secret
+
+### 4. Environment Configuration
+Create `.env` file:
 ```bash
-# Once dependencies are installed
+# OAuth Configuration (Agent Mode)
+LINEAR_CLIENT_ID=your_client_id_here
+LINEAR_CLIENT_SECRET=your_client_secret_here
+LINEAR_REDIRECT_URI=http://localhost:3000/oauth/callback
+
+# Anthropic Configuration
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+```
+
+### 5. Install Agent
+```bash
+# Start server
 npm start
 
-# Or for development
-npm run dev
+# Install agent (opens browser)
+open http://localhost:3000/oauth/install
+
+# Follow OAuth flow in Linear
+# - Select your workspace
+# - Review permissions
+# - Click "Install Application"
 ```
 
-## Testing LinearPM
+### 6. Verify Installation
+```bash
+# Check agent status
+curl http://localhost:3000/status
 
-### Option 1: Local Testing with ngrok
+# Should show:
+# {
+#   "service": "goPM",
+#   "mode": "agent",
+#   "agentWorkspaces": 1,
+#   "workspaces": [...]
+# }
+```
+
+---
+
+## 📋 Legacy Mode Setup
+
+### Alternative: API Key Setup
+If you prefer traditional webhook mode:
 
 ```bash
-# Install ngrok if you haven't
-npm install -g ngrok
+# Legacy Configuration
+LINEAR_API_KEY=lin_api_xxxxxxxxxxxxxxxx
+LINEAR_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
+PORT=3000
+```
 
-# Expose local server
+### Webhook Configuration
+1. Go to Linear → Settings → API → Webhooks
+2. Create webhook pointing to: `https://your-domain.com/webhook`
+3. Select events: Comment, Issue, Reaction
+4. Use webhook secret from `.env`
+
+---
+
+## 🧪 Testing & Usage
+
+### Agent Mode Testing
+```bash
+# Check installation status
+curl http://localhost:3000/status
+
+# OAuth installation status
+curl http://localhost:3000/oauth/status
+
+# Health check
+curl http://localhost:3000/health
+```
+
+### Using Agent Mode (@goPM)
+**Mention in Comments:**
+```
+@goPM break down this epic into user stories
+@goPM what are the risks with this feature?
+@goPM help improve these acceptance criteria
+```
+
+**Assign to Issues:**
+- Assign the goPM agent directly to any issue
+- Get smart acknowledgment based on issue type
+
+**React with Emojis:**
+- 👍❤️🎉 → Agent thanks you
+- 👎❌😞 → Agent asks for improvement feedback
+- 🔥⚡🚨 → Agent acknowledges urgency
+
+### Using Legacy Mode (@LinearPM)
+```
+@LinearPM estimate effort for this task
+@LinearPM analyze technical complexity
+@LinearPM suggest requirements
+```
+
+### Expected Flow
+1. **Instant acknowledgment** (🤔) within 2 seconds
+2. **Live processing** ("🤔 Analyzing this issue...")
+3. **Progress updates** for long requests ("🧠 Still thinking...")
+4. **Smart completion** with next steps and timestamp
+
+### Local Development with ngrok
+```bash
+# Expose local server for webhook testing
 ngrok http 3000
-
-# Use the ngrok URL for Linear webhook
+# Use ngrok URL in Linear webhook/OAuth settings
 ```
 
-### Option 2: Manual Testing
-
+### Manual Webhook Testing
 ```bash
-# Test webhook endpoint
+# Test agent mention
 curl -X POST http://localhost:3000/webhook \
   -H "Content-Type: application/json" \
-  -d '{
-    "type": "Comment",
-    "action": "create",
-    "data": {
-      "body": "@LinearPM help me improve test cases",
-      "issue": { "id": "test-issue-123" }
-    }
-  }'
+  -d '{"type":"Comment","action":"create","data":{"body":"@goPM test","issue":{"id":"123"}}}'
+
+# Test legacy mention  
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"type":"Comment","action":"create","data":{"body":"@LinearPM test","issue":{"id":"123"}}}'
+
+# Test assignment
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"type":"Issue","action":"update","data":{"assignee":{"id":"agent-user-id"},"id":"test-issue"}}'
 ```
 
-## Using LinearPM in Linear
+---
 
-Once set up, use these commands in Linear issues/comments:
+## 🛠️ Troubleshooting
 
-- `@LinearPM help me improve the test cases`
-- `@LinearPM help me improve the acceptance criteria`
-- `@LinearPM suggest requirements`
+### Agent Mode Issues
 
-## Expected Behavior
+**OAuth Installation Failed:**
+```bash
+# Check OAuth credentials
+echo $LINEAR_CLIENT_ID
+echo $LINEAR_CLIENT_SECRET
 
-1. You mention `@LinearPM` in Linear
-2. LinearPM responds with 🤖 (working on it)
-3. AI analyzes your request and issue context
-4. Detailed suggestions posted as Linear comment
+# Verify redirect URI matches exactly
+# Linear App: http://localhost:3000/oauth/callback
+# .env file: LINEAR_REDIRECT_URI=http://localhost:3000/oauth/callback
+```
 
-## Troubleshooting
+**Agent Not Responding to Assignments:**
+- Verify agent has `app:assignable` scope
+- Check for "🎯 Issue assigned to agent" in server logs
+- Ensure workspace ID extraction is working
 
-### Dependencies Won't Install
-- npm registry issues - use `node test-server.js` for now
-- Try again later or use `npm install --registry https://registry.yarnpkg.com`
+**OAuth Tokens Lost After Restart:**
+- Check if `.gopm-tokens.json` file exists
+- Verify file permissions (should be readable/writable)
+- Look for "📥 Loaded token for workspace" on startup
 
-### Linear API Errors
-- Check API key is valid and has proper permissions
-- Verify webhook URL is accessible from internet
+### General Issues
 
-### Anthropic API Errors
-- Check API key is valid
-- Verify you have credits/usage available
+**Webhook Not Receiving Events:**
+- Ensure webhook URL is publicly accessible
+- Use ngrok for local development
+- Check Linear webhook configuration
+- Look for "📨 Webhook received" in logs
 
-## Architecture
+**Slow AI Responses:**
+- Agent shows 🤔 instantly (< 2 seconds)
+- Progress updates appear after 10+ seconds
+- Normal AI processing: 5-30 seconds
 
-- **Webhook Server**: Receives Linear events (`/webhook`)
-- **Command Parser**: Extracts @LinearPM commands
-- **AI Assistant**: Processes requests with specialized prompts
-- **Linear Client**: Posts responses back to Linear
+**Missing Context:**
+- Include more details in issue description
+- Add project information for better responses
+- Be specific in requests
 
-Ready to transform your Linear workflow with AI! 🚀
+### Quick Fixes
+
+```bash
+# Restart and check status
+npm start
+curl http://localhost:3000/status
+
+# Reinstall OAuth agent
+rm .gopm-tokens.json
+open http://localhost:3000/oauth/install
+
+# Check OAuth status
+curl http://localhost:3000/oauth/status
+
+# Test both modes
+# Agent: @goPM test
+# Legacy: @LinearPM test
+```
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── index.js                # Entry point
+├── webhook-server.js       # Event routing & async processing
+├── agent-linear-client.js  # OAuth agent with assignments & reactions
+├── linear-client.js        # Legacy API key client
+├── oauth-manager.js        # Token persistence & workspace management
+├── oauth-routes.js         # OAuth installation & status endpoints
+├── ai-assistant.js         # Claude integration with context awareness
+└── command-parser.js       # Legacy @LinearPM detection
+
+OAuth tokens: .gopm-tokens.json (auto-generated)
+```
+
+---
+
+## 🎉 Success!
+
+**You now have a complete Linear agent with:**
+- ⚡ Instant responses (🤔 acknowledgment in < 2 seconds)
+- 🤖 Smart assignment handling with context-aware responses
+- 😀 Emoji reaction processing for interactive feedback
+- 🎯 Context-aware completion with next step suggestions
+- 🔄 Dual-mode operation (OAuth agent + Legacy webhook)
+
+**Ready for AI-powered PM assistance in Linear!** 🚀

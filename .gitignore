@@ -11,6 +11,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# OAuth tokens (development)
+.gopm-tokens.json
+
 # Logs
 logs
 *.log

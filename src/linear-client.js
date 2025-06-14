@@ -22,11 +22,6 @@ export class LinearClient {
     return this.timestampFormatter.format(new Date()) + ' EST';
   }
 
-  // Optional: Clean up orphaned comment references (call periodically if needed)
-  cleanupActiveComments() {
-    console.log(`Cleaning up ${this.activeComments.size} active comment references`);
-    this.activeComments.clear();
-  }
 
   async addComment(issueId, content) {
     try {
@@ -35,10 +30,12 @@ export class LinearClient {
         body: content,
       });
 
-      if (result.success && result.comment) {
-        return result.comment;
+      // Linear SDK returns result with _comment property containing the actual comment
+      if (result && result.success && result._comment && result._comment.id) {
+        return result._comment;
       } else {
-        throw new Error('Failed to create comment: ' + (result.error || 'Unknown error'));
+        console.error('Unexpected comment creation result:', result);
+        throw new Error('Failed to create comment: Invalid response format');
       }
     } catch (error) {
       console.error('Failed to add comment to Linear:', error);
@@ -65,10 +62,12 @@ export class LinearClient {
         body: content
       });
 
-      if (result.success && result.comment) {
-        return result.comment;
+      // Linear SDK returns result with _comment property containing the actual comment
+      if (result && result.success && result._comment && result._comment.id) {
+        return result._comment;
       } else {
-        throw new Error('Failed to update comment: ' + (result.error || 'Unknown error'));
+        console.error('Unexpected comment update result:', result);
+        throw new Error('Failed to update comment: Invalid response format');
       }
     } catch (error) {
       console.error('Failed to update comment in Linear:', error);
@@ -153,32 +152,22 @@ export class LinearClient {
     }
   }
 
-  async updateIssue(issueId, updates) {
-    try {
-      const result = await this.client.issueUpdate(issueId, updates);
 
-      if (result.success && result.issue) {
-        return result.issue;
+  async handleProcessingError(issueId) {
+    const commentId = this.activeComments.get(issueId);
+    const timestamp = this.getTimestamp();
+    
+    const errorBody = `❌ Sorry, I encountered an error processing your request. Please try again.\n\nError time: ${timestamp}`;
+    
+    try {
+      if (commentId) {
+        await this.updateComment(commentId, errorBody);
+        this.activeComments.delete(issueId);
       } else {
-        throw new Error('Failed to update issue: ' + (result.error || 'Unknown error'));
+        await this.addComment(issueId, errorBody);
       }
     } catch (error) {
-      throw error;
-    }
-  }
-
-  async searchIssues(query) {
-    try {
-      const issues = await this.client.issues({
-        filter: { 
-          title: { contains: query } 
-        }
-      });
-
-      return issues.nodes;
-    } catch (error) {
-      console.error('Failed to search issues in Linear:', error);
-      throw error;
+      console.error(`Failed to create error comment for issue ${issueId}:`, error);
     }
   }
 }
