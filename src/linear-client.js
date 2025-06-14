@@ -5,6 +5,27 @@ export class LinearClient {
     this.apiKey = process.env.LINEAR_API_KEY;
     this.client = new LinearSDK({ apiKey: this.apiKey });
     this.activeComments = new Map();
+    
+    // Reusable timestamp formatter
+    this.timestampFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  getTimestamp() {
+    return this.timestampFormatter.format(new Date()) + ' EST';
+  }
+
+  // Optional: Clean up orphaned comment references (call periodically if needed)
+  cleanupActiveComments() {
+    console.log(`Cleaning up ${this.activeComments.size} active comment references`);
+    this.activeComments.clear();
   }
 
   async addComment(issueId, content) {
@@ -26,16 +47,7 @@ export class LinearClient {
   }
 
   async addWorkingComment(issueId) {
-    const timestamp = new Date().toLocaleString('en-US', { 
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit', 
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }) + ' EST';
-    const content = `🤔 working on it\nLast updated: ${timestamp}`;
+    const content = `🤔 working on it\nLast updated: ${this.getTimestamp()}`;
     
     try {
       const comment = await this.addComment(issueId, content);
@@ -71,17 +83,7 @@ export class LinearClient {
       return null;
     }
 
-    const timestamp = new Date().toLocaleString('en-US', { 
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit', 
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }) + ' EST';
-    
-    const content = `${fullResponse}\n\nCompleted: ${timestamp}`;
+    const content = `${fullResponse}\n\nCompleted: ${this.getTimestamp()}`;
     
     try {
       const updatedComment = await this.updateComment(commentId, content);
@@ -94,20 +96,6 @@ export class LinearClient {
     }
   }
 
-  async getIssue(issueId) {
-    try {
-      const issue = await this.client.issue(issueId);
-      
-      if (!issue) {
-        throw new Error(`Issue with ID ${issueId} not found`);
-      }
-
-      return issue;
-    } catch (error) {
-      console.error('Failed to fetch issue from Linear:', error);
-      throw error;
-    }
-  }
 
   async getIssueWithProject(issueId) {
     try {

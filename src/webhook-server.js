@@ -92,59 +92,64 @@ export class WebhookServer {
   }
 
   async processLinearComment(comment) {
-    const command = await this.commandParser.parseCommand(comment.body, this.aiAssistant);
+    const command = await this.commandParser.parseCommand(comment.body);
+    if (!command) return;
+
+    const { issue, projectContext } = await this.getIssueContext(comment.issue.id);
     
-    if (command) {
-      // Get full issue context with project information
-      const issue = await this.linearClient.getIssueWithProject(comment.issue.id);
-      const projectContext = await this.linearClient.getProjectContext(issue);
-      
-      // Log structured format
-      const commentSnippet = comment.body.substring(0, 150) + (comment.body.length > 150 ? '...' : '');
-      const issueSnippet = (issue.description || '').substring(0, 150) + ((issue.description || '').length > 150 ? '...' : '');
-      
-      console.log('');
-      console.log(`💬 Received Comment ${commentSnippet}`);
-      console.log('');
-      console.log(`📋 For Issue ${comment.issue.id} ${issue.title} ${issueSnippet}`);
-      console.log('');
-      
-      if (typeof projectContext === 'string') {
-        console.log(`🏗️ ${projectContext}`);
-      } else {
-        const projectContent = projectContext.content || projectContext.description || '';
-        const projectSnippet = projectContent.substring(0, 150) + (projectContent.length > 150 ? '...' : '');
-        console.log(`🏗️ Related to Project ${projectContext.name} ${projectSnippet}`);
-      }
-      console.log('');
-      
-      await this.processCommand(comment.issue.id, command, {
-        issueTitle: issue.title,
-        issueDescription: issue.description,
-        comments: issue.comments?.nodes || [],
-        team: issue.team?.name,
-        state: issue.state?.name,
-        projectContext: projectContext
-      });
-    }
+    this.logCommentProcessing(comment, issue, projectContext);
+    
+    await this.processCommand(comment.issue.id, command, this.buildContext(issue, projectContext));
   }
 
   async processLinearIssue(issue) {
-    const command = await this.commandParser.parseCommand(issue.description, this.aiAssistant);
+    const command = await this.commandParser.parseCommand(issue.description);
+    if (!command) return;
+
+    const { issue: fullIssue, projectContext } = await this.getIssueContext(issue.id);
     
-    if (command) {
-      // Get full issue context with project information
-      const fullIssue = await this.linearClient.getIssueWithProject(issue.id);
-      const projectContext = await this.linearClient.getProjectContext(fullIssue);
-      
-      await this.processCommand(issue.id, command, {
-        issueTitle: issue.title,
-        issueDescription: issue.description,
-        team: issue.team?.name,
-        state: issue.state?.name,
-        projectContext: projectContext
-      });
+    await this.processCommand(issue.id, command, this.buildContext(fullIssue, projectContext));
+  }
+
+  async getIssueContext(issueId) {
+    const issue = await this.linearClient.getIssueWithProject(issueId);
+    const projectContext = await this.linearClient.getProjectContext(issue);
+    return { issue, projectContext };
+  }
+
+  buildContext(issue, projectContext) {
+    return {
+      issueTitle: issue.title,
+      issueDescription: issue.description,
+      comments: issue.comments?.nodes || [],
+      team: issue.team?.name,
+      state: issue.state?.name,
+      projectContext: projectContext
+    };
+  }
+
+  logCommentProcessing(comment, issue, projectContext) {
+    const commentSnippet = this.createSnippet(comment.body);
+    const issueSnippet = this.createSnippet(issue.description || '');
+    
+    console.log('');
+    console.log(`💬 Received Comment ${commentSnippet}`);
+    console.log('');
+    console.log(`📋 For Issue ${comment.issue.id} ${issue.title} ${issueSnippet}`);
+    console.log('');
+    
+    if (typeof projectContext === 'string') {
+      console.log(`🏗️ ${projectContext}`);
+    } else {
+      const projectContent = projectContext.content || projectContext.description || '';
+      const projectSnippet = this.createSnippet(projectContent);
+      console.log(`🏗️ Related to Project ${projectContext.name} ${projectSnippet}`);
     }
+    console.log('');
+  }
+
+  createSnippet(text, maxLength = 150) {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   }
 
   async processCommand(issueId, command, context) {
@@ -152,10 +157,8 @@ export class WebhookServer {
       // Create initial working comment
       await this.linearClient.addWorkingComment(issueId);
       
-      let response;
-      
-      // All requests now use the master prompt
-      response = await this.aiAssistant.handleConversationalRequest(
+      // Get AI response using master prompt
+      const response = await this.aiAssistant.handleConversationalRequest(
         command.originalText,
         context
       );
@@ -165,55 +168,25 @@ export class WebhookServer {
       
     } catch (error) {
       console.error('Command processing error:', error);
-      
+      await this.handleProcessingError(issueId);
+    }
+  }
+
+  async handleProcessingError(issueId) {
+    const errorMessage = '❌ Sorry, I encountered an error processing your request. Please try again.';
+    
+    try {
+      // Try to update the working comment with error
+      await this.linearClient.updateWorkingCommentWithResult(issueId, errorMessage);
+    } catch (updateError) {
+      console.error('Failed to update working comment with error:', updateError);
+      // Fallback: Add error message as new comment
       try {
-        // Try to update the working comment with error
-        await this.linearClient.updateWorkingCommentWithResult(issueId, '❌ Sorry, I encountered an error processing your request. Please try again.');
-      } catch (updateError) {
-        console.error('Failed to update working comment with error:', updateError);
-        // Fallback: Add error message as new comment
-        try {
-          await this.linearClient.addComment(
-            issueId,
-            '❌ Sorry, I encountered an error processing your request. Please try again.'
-          );
-        } catch (fallbackError) {
-          console.error('Failed to add fallback error comment:', fallbackError);
-        }
+        await this.linearClient.addComment(issueId, errorMessage);
+      } catch (fallbackError) {
+        console.error('Failed to add fallback error comment:', fallbackError);
       }
     }
-  }
-
-  createSummaryResponse(response, commandType) {
-    const maxLength = 100;
-    let summary = response.substring(0, maxLength);
-    
-    if (response.length > maxLength) {
-      summary += '...';
-    }
-    
-    // Remove line breaks for cleaner display
-    summary = summary.replace(/\n/g, ' ').trim();
-    
-    const action = 'Completed request';
-    return `${action}: ${summary}`;
-  }
-
-  getWorkingEmoji(commandType) {
-    const emojiMap = {
-      'improve_test_cases': '🧪',
-      'improve_acceptance_criteria': '✅',
-      'suggest_requirements': '📋',
-      'break_down_epic': '🧩',
-      'estimate_effort': '⏱️',
-      'identify_risks': '⚠️',
-      'create_user_stories': '👥',
-      'analyze_dependencies': '🔗',
-      'suggest_mvp_scope': '🎯',
-      'conversational_request': '🤖'
-    };
-    
-    return emojiMap[commandType] || '🤖';
   }
 
   async start() {

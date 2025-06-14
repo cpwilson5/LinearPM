@@ -7,25 +7,6 @@ export class AIAssistant {
     });
   }
 
-  async parseConversationalCommand(text) {
-    // Simplified - just return a generic conversational request
-    return {
-      type: 'conversational_request',
-      originalText: text,
-      intent: 'User request for product management assistance',
-      confidence: 1.0
-    };
-  }
-
-
-
-
-
-
-
-
-
-
   async handleConversationalRequest(requestText, context) {
     const prompt = `You are tasked with reviewing a user story based on Linear Project context and specific feature requirements. Your goal is to do what is provided in the comment. Ensure the response is clear and actionable for both human engineers and AI agents. Follow these steps to complete the task:
 
